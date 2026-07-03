@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hemograma Completo — Atlas Interativo de Interpretação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    blood: { 50:'#fef2f2', 100:'#fde6e8', 200:'#f9bfc5', 400:'#e8384f', 500:'#c41e3a', 600:'#a81830', 700:'#8b1228', 800:'#6e0d20', 900:'#510818', 950:'#1a060a' },
+                    gold: { 400:'#e6c06a', 500:'#d4a853', 600:'#b8912e' },
+                    bone: '#ede4e6',
+                    muted: '#7a6b6f',
+                },
+                fontFamily: {
+                    display: ['Space Grotesk', 'sans-serif'],
+                    body: ['DM Sans', 'sans-serif'],
+                }
+            }
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --bg: #08080e;
+            --card: rgba(160, 15, 35, 0.06);
+            --card-hover: rgba(160, 15, 35, 0.12);
+            --accent: #c41e3a;
+            --accent-glow: rgba(196, 30, 58, 0.35);
+            --gold: #d4a853;
+            --fg: #ede4e6;
+            --muted: #7a6b6f;
+            --border: rgba(196, 30, 58, 0.15);
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); color: var(--fg); font-family: 'DM Sans', sans-serif; }
+        ::selection { background: var(--accent); color: #fff; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+        /* Células flutuantes */
+        .floating-cell {
+            position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+            animation: cellFloat linear infinite;
+        }
+        .cell-eritro { background: radial-gradient(circle at 35% 35%, #e8384f, #6e0d20); }
+        .cell-leuco { background: radial-gradient(circle at 40% 40%, #f5e6c8, #d4a853); }
+        .cell-plaqueta { background: radial-gradient(circle at 40% 40%, #f5d76e, #b8912e); }
+        @keyframes cellFloat {
+            0% { transform: translateY(110vh) rotate(0deg) scale(1); opacity: 0; }
+            10% { opacity: 0.12; }
+            90% { opacity: 0.12; }
+            100% { transform: translateY(-120px) rotate(360deg) scale(0.7); opacity: 0; }
+        }
+
+        /* Hero background */
+        .hero-bg {
+            background:
+                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(196,30,58,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 20% 80%, rgba(212,168,83,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 50% 50% at 80% 60%, rgba(196,30,58,0.1) 0%, transparent 50%),
+                var(--bg);
+        }
+
+        /* Cards */
+        .var-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .var-card:hover { background: var(--card-hover); border-color: rgba(196,30,58,0.3); }
+        .var-card-header { cursor: pointer; padding: 1.25rem 1.5rem; user-select: none; }
+        .var-card-body {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            padding: 0 1.5rem;
+        }
+        .var-card.open .var-card-body { max-height: 2000px; padding: 0 1.5rem 1.5rem; }
+        .var-card.open .card-chevron { transform: rotate(180deg); }
+        .card-chevron { transition: transform 0.3s ease; }
+
+        /* Tabs */
+        .tab-btn {
+            padding: 0.6rem 1.5rem; border-radius: 8px; font-weight: 600;
+            transition: all 0.25s ease; border: 1px solid transparent;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .tab-btn:not(.active) { background: transparent; color: var(--muted); border-color: var(--border); }
+        .tab-btn:not(.active):hover { color: var(--fg); border-color: rgba(196,30,58,0.4); }
+
+        /* Badge */
+        .badge {
+            display: inline-block; padding: 2px 10px; border-radius: 20px;
+            font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+        }
+        .badge-vermelha { background: rgba(232,56,79,0.15); color: #e8384f; }
+        .badge-branca { background: rgba(212,168,83,0.15); color: #d4a853; }
+        .badge-plaquetar { background: rgba(46,204,113,0.15); color: #2ecc71; }
+
+        /* Simulador */
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px;
+            border-radius: 3px; background: rgba(196,30,58,0.15); outline: none;
+            transition: background 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: 3px solid var(--fg);
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2); box-shadow: 0 0 18px var(--accent-glow);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; border: 3px solid var(--fg);
+        }
+
+        /* Barra de referência visual */
+        .ref-bar { position: relative; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.06); margin-top: 6px; }
+        .ref-bar-normal { position: absolute; height: 100%; border-radius: 4px; background: rgba(46,204,113,0.25); }
+        .ref-bar-marker {
+            position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+            background: #fff; border: 3px solid var(--accent); transform: translate(-50%, -50%);
+            transition: left 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+        }
+        .ref-bar-marker.normal { border-color: var(--success); }
+        .ref-bar-marker.low { border-color: var(--danger); }
+        .ref-bar-marker.high { border-color: var(--danger); }
+
+        /* Cenário btn */
+        .scenario-btn {
+            padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500;
+            border: 1px solid var(--border); background: var(--card); color: var(--fg);
+            transition: all 0.2s ease; cursor: pointer; white-space: nowrap;
+        }
+        .scenario-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        /* Scroll reveal */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* Interpretação painel */
+        .interp-section { border-left: 3px solid var(--accent); padding-left: 1rem; margin-bottom: 1rem; }
+        .interp-section.verde { border-left-color: var(--success); }
+        .interp-section.dourado { border-left-color: var(--gold); }
+
+        /* Sex toggle */
+        .sex-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        .sex-toggle button {
+            padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 600;
+            transition: all 0.2s; cursor: pointer; border: none;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .sex-toggle button.active { background: var(--accent); color: #fff; }
+        .sex-toggle button:not(.active) { background: transparent; color: var(--muted); }
+
+        /* Pulse animation */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(196,30,58,0.1); }
+            50% { box-shadow: 0 0 40px rgba(196,30,58,0.25); }
+        }
+        .pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+        /* Causa item */
+        .causa-item {
+            padding: 0.35rem 0; padding-left: 1rem; position: relative;
+            font-size: 0.9rem; color: rgba(237,228,230,0.85); line-height: 1.5;
+        }
+        .causa-item::before {
+            content: ''; position: absolute; left: 0; top: 0.7rem;
+            width: 6px; height: 6px; border-radius: 50%;
+        }
+        .causa-up::before { background: var(--danger); }
+        .causa-down::before { background: #3498db; }
+
+        /* Dica box */
+        .dica-box {
+            background: rgba(212,168,83,0.08); border: 1px solid rgba(212,168,83,0.2);
+            border-radius: 8px; padding: 1rem; margin-top: 1rem;
+        }
+
+        /* Correlação tag */
+        .corr-tag {
+            display: inline-block; padding: 2px 10px; border-radius: 6px;
+            font-size: 0.75rem; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08); margin: 2px;
+        }
+
+        /* Smooth section transitions */
+        .tab-content { animation: fadeSlideIn 0.4s ease; }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .floating-cell, .reveal, .tab-content, .var-card-body, .card-chevron,
+            .ref-bar-marker, input[type="range"]::-webkit-slider-thumb { animation: none !important; transition: none !important; }
+        }
+
+        /* Nav active link */
+        .nav-link { position: relative; }
+        .nav-link::after {
+            content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px;
+            background: var(--accent); transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+    </style>
+</head>
+<body class="font-body antialiased overflow-x-hidden">
+
+    <!-- Células flutuantes -->
+    <div id="cells-container" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[#08080ecc] border-b border-blood-900/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+            <a href="#hero" class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blood-500 flex items-center justify-center">
+                    <i class="fas fa-droplet text-white text-sm"></i>
+                </div>
+                <span class="font-display font-bold text-lg tracking-tight">HemoAtlas - Prof. Rodrigo Niskier</span>
+            </a>
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+                <a href="#sobre" class="nav-link text-muted hover:text-bone transition-colors">Sobre</a>
+                <a href="#referencias" class="nav-link text-muted hover:text-bone transition-colors">Referencias</a>
+                <a href="#simulador" class="nav-link text-muted hover:text-bone transition-colors">Simulador</a>
+                <a href="#fluxograma" class="nav-link text-muted hover:text-bone transition-colors">Fluxograma</a>
+            </nav>
+            <button id="mobile-menu-btn" class="md:hidden text-muted hover:text-bone" aria-label="Menu">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- Menu mobile -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-blood-900/30 bg-[#08080ef5] backdrop-blur-xl">
+            <nav class="flex flex-col p-4 gap-3 text-sm font-medium">
+                <a href="#sobre" class="text-muted hover:text-bone py-2 mobile-nav-link">Sobre</a>
+                <a href="#referencias" class="text-muted hover:text-bone py-2 mobile-nav-link">Referencias</a>
+                <a href="#simulador" class="text-muted hover:text-bone py-2 mobile-nav-link">Simulador</a>
+                <a href="#fluxograma" class="text-muted hover:text-bone py-2 mobile-nav-link">Fluxograma</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section id="hero" class="hero-bg min-h-screen flex items-center justify-center relative pt-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blood-900/40 bg-blood-950/50 mb-8 text-sm text-blood-200">
+                <i class="fas fa-microscope"></i>
+                <span>Biomedicina Clinica</span>
+            </div>
+            <h1 class="font-display font-bold text-5xl sm:text-6xl lg:text-7xl tracking-tight leading-[1.05] mb-6">
+                Hemograma<br>
+                <span class="text-blood-400">Completo</span>
+            </h1>
+            <p class="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-10 leading-relaxed">
+                Atlas interativo para interpretacao autodidata de todas as variaveis do hemograma.
+                Entenda o que cada indice significa, o que as variacoes indicam e como correlacionar os dados.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#referencias" class="px-8 py-3.5 bg-blood-500 hover:bg-blood-600 text-white font-display font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-blood-500/25">
+                    Explorar Referencias
+                </a>
+                <a href="#simulador" class="px-8 py-3.5 border border-blood-900/50 text-bone font-display font-semibold rounded-xl hover:bg-blood-950/50 transition-all">
+                    Simulador Interativo
+                </a>
+            </div>
+            <div class="mt-16 flex items-center justify-center gap-8 sm:gap-12 text-center">
+                <div>
+                    <div class="font-display font-bold text-2xl text-blood-400">17</div>
+                    <div class="text-xs text-muted mt-1">Variaveis</div>
+                </div>
+                <div class="w-px h-10 bg-blood-900/40"></div>
+                <div>
+                    <div class="font-display font-bold text-2xl text-gold-500">3</div>
+                    <div class="text-xs text-muted mt-1">Series</div>
+                </div>
+                <div class="w-px h-10 bg-blood-900/40"></div>
+                <div>
+                    <div class="font-display font-bold text-2xl text-bone">9</div>
+                    <div class="text-xs text-muted mt-1">Cenarios</div>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+            <i class="fas fa-chevron-down text-blood-500/50"></i>
+        </div>
+    </section>
+
+    <!-- Sobre o Hemograma -->
+    <section id="sobre" class="py-24 relative">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="reveal text-center mb-16">
+                <h2 class="font-display font-bold text-3xl sm:text-4xl mb-4">O que e o Hemograma</h2>
+                <p class="text-muted max-w-2xl mx-auto">
+                    O hemograma completo e o exame laboratorial mais solicitado na pratica clinica.
+                    Avalia quantitativa e qualitativamente os tres elementos figurados do sangue periferico.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6 reveal">
+                <div class="var-card p-6 text-center pulse-glow">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-blood-500/10 flex items-center justify-center">
+                        <i class="fas fa-circle text-blood-400 text-2xl"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-xl mb-2">Serie Vermelha</h3>
+                    <p class="text-sm text-muted leading-relaxed">
+                        Eritrograma — avalia hemacias, hemoglobina, hemtocrito e indices hematimetricos (VCM, HCM, CHCM, RDW). Fundamental para diagnostico e classificacao de anemias.
+                    </p>
+                    <div class="mt-4"><span class="badge badge-vermelha">7 parametros</span></div>
+                </div>
+                <div class="var-card p-6 text-center pulse-glow" style="animation-delay: 1s;">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gold-500/10 flex items-center justify-center">
+                        <i class="fas fa-shield-halved text-gold-500 text-2xl"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-xl mb-2">Serie Branca</h3>
+                    <p class="text-sm text-muted leading-relaxed">
+                        Leucograma — avalia leucocitos totais e a formula leucocitaria diferencial (neutrofilos, linfocitos, monocitos, eosinofilos, basofilos). Essencial para avaliacao imunologica e infecciosa.
+                    </p>
+                    <div class="mt-4"><span class="badge badge-branca">7 parametros</span></div>
+                </div>
+                <div class="var-card p-6 text-center pulse-glow" style="animation-delay: 2s;">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <i class="fas fa-gem text-green-400 text-2xl"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-xl mb-2">Serie Plaquetaria</h3>
+                    <p class="text-sm text-muted leading-relaxed">
+                        Trombograma — avalia contagem de plaquetas, volume plaquetario medio (VPM) e plaquetocrito (PCT). Indica alteracoes na hemostasia primaria e producao medular.
+                    </p>
+                    <div class="mt-4"><span class="badge badge-plaquetar">3 parametros</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Referencias Detalhadas -->
+    <section id="referencias" class="py-24 relative">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6">
+            <div class="reveal text-center mb-12">
+                <h2 class="font-display font-bold text-3xl sm:text-4xl mb-4">Referencias Detalhadas</h2>
+                <p class="text-muted max-w-xl mx-auto">Clique em cada parametro para expandir sua descricao completa, causas de alteracao e dicas de interpretacao.</p>
+            </div>
+            <!-- Tabs -->
+            <div class="reveal flex flex-wrap justify-center gap-3 mb-10">
+                <button class="tab-btn active" data-tab="eritrograma" onclick="switchTab('eritrograma')">
+                    <i class="fas fa-circle text-blood-400 text-xs mr-2"></i>Eritrograma
+                </button>
+                <button class="tab-btn" data-tab="leucograma" onclick="switchTab('leucograma')">
+                    <i class="fas fa-shield-halved text-gold-500 text-xs mr-2"></i>Leucograma
+                </button>
+                <button class="tab-btn" data-tab="trombograma" onclick="switchTab('trombograma')">
+                    <i class="fas fa-gem text-green-400 text-xs mr-2"></i>Trombograma
+                </button>
+            </div>
+            <!-- Conteudo das tabs -->
+            <div id="tab-content" class="reveal space-y-4 tab-content"></div>
+        </div>
+    </section>
+
+    <!-- Simulador -->
+    <section id="simulador" class="py-24 relative" style="background: linear-gradient(180deg, transparent 0%, rgba(196,30,58,0.03) 50%, transparent 100%);">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="reveal text-center mb-12">
+                <h2 class="font-display font-bold text-3xl sm:text-4xl mb-4">Simulador Interativo</h2>
+                <p class="text-muted max-w-xl mx-auto">Ajuste os valores e veja a interpretacao em tempo real. Use os cenarios clinicos para padroes conhecidos.</p>
+            </div>
+            <!-- Toggle sexo -->
+            <div class="reveal flex flex-wrap items-center justify-center gap-6 mb-10">
+                <div class="flex items-center gap-3">
+                    <span class="text-sm text-muted font-medium">Sexo biologico:</span>
+                    <div class="sex-toggle">
+                        <button id="sex-m" class="active" onclick="setSex('M')">Masculino</button>
+                        <button id="sex-f" onclick="setSex('F')">Feminino</button>
+                    </div>
+                </div>
+                <button onclick="resetSimulator()" class="text-sm text-blood-400 hover:text-blood-200 transition-colors font-medium">
+                    <i class="fas fa-rotate-left mr-1"></i>Resetar
+                </button>
+            </div>
+            <div class="reveal grid lg:grid-cols-5 gap-8">
+                <!-- Sliders -->
+                <div class="lg:col-span-3 space-y-5" id="sliders-container"></div>
+                <!-- Interpretação -->
+                <div class="lg:col-span-2">
+                    <div class="var-card p-6 sticky top-24">
+                        <h3 class="font-display font-bold text-lg mb-4 flex items-center gap-2">
+                            <i class="fas fa-stethoscope text-blood-400"></i>Interpretacao
+                        </h3>
+                        <div id="interpretation" class="text-sm leading-relaxed space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Cenários -->
+            <div class="reveal mt-12">
+                <h3 class="font-display font-semibold text-lg mb-4 text-center">Cenarios Clinicos Pre-configurados</h3>
+                <div class="flex flex-wrap justify-center gap-3" id="scenarios-container"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fluxograma -->
+    <section id="fluxograma" class="py-24 relative">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="reveal text-center mb-12">
+                <h2 class="font-display font-bold text-3xl sm:text-4xl mb-4">Fluxograma de Interpretacao</h2>
+                <p class="text-muted max-w-xl mx-auto">Raciocinio sequencial para avaliacao da serie vermelha — o ponto de partida mais comum na pratica clinica.</p>
+            </div>
+            <div class="reveal space-y-0" id="flowchart-container">
+                <!-- Gerado via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Dicas Práticas -->
+    <section class="py-24 relative" style="background: linear-gradient(180deg, transparent 0%, rgba(212,168,83,0.03) 50%, transparent 100%);">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="reveal text-center mb-12">
+                <h2 class="font-display font-bold text-3xl sm:text-4xl mb-4">Dicas Praticas de Interpretacao</h2>
+            </div>
+            <div class="reveal space-y-4" id="tips-container"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-blood-900/30 py-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 text-center">
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-blood-500 flex items-center justify-center">
+                    <i class="fas fa-droplet text-white text-sm"></i>
+                </div>
+                <span class="font-display font-bold text-lg">HemoAtlas - Prof. Rodrigo Niskier</span>
+            </div>
+            <p class="text-sm text-muted max-w-lg mx-auto mb-4">
+                Ferramenta educacional para estudo do hemograma completo. Nao substitui a analise clinica profissional.
+                Valores de referencia podem variar conforme o laboratorio.
+            </p>
+            <p class="text-xs text-muted/60">Desenvolvido com rigor cientifico para fins didaticos</p>
+        </div>
+    </footer>
+
+<script>
+// ============================================================
+// DADOS COMPLETOS DO HEMOGRAMA
+// ============================================================
+const hemogramaData = {
+    eritrograma: [
+        {
+            id:'hemacias', nome:'Hemacias', siglas:['RBC','Eritrocitos','Gl. Vermelhos'],
+            unidade:'milhoes/mm³',
+            refTexto:'M: 4,5 — 6,0 | F: 4,0 — 5,5',
+            refM:[4.5,6.0], refF:[4.0,5.5],
+            descricao:'As hemacias sao celulas anucleadas com forma bicôncava, produzidas na medula ossea a partir de eritroblastos. Sua principal funcao e o transporte de O2 (ligado a hemoglobina) dos pulmoes aos tecidos e de CO2 dos tecidos aos pulmoes. A forma bicôncava maximiza a relacao superficie/volume, otimizando a troca gasosa. Possuem membrana flexivel que permite deformacao para passar por capilares de 3-5 micrometros, apesar de terem ~7 micrometros de diametro.',
+            aumento:{titulo:'Eritrocitose / Policitemia',causas:[
+                'Policitemia vera — neoplasia mieloproliferativa clonal',
+                'Hipoxia cronica — DPOC, fibrose pulmonar, altitude',
+                'Hemoconcentracao relativa — desidratacao, diurese excessiva',
+                'Producao exógena de EPO — carcinoma renal, hepatocelular, hemangioblastoma cerebelar',
+                'Uso de esteroides anabolizantes ou testosterona',
+                'Policitemia secundaria fisiologica — atletas de alta performance'
+            ]},
+            diminuicao:{titulo:'Anemia',causas:[
+                'Anemia ferropriva — deficiencia de ferro (causa mais comum no mundo)',
+                'Anemia de doenca cronica — inflamacao cronica, neoplasias, infeccoes',
+                'Anemia megaloblastica — deficiencia de B12 ou folato',
+                'Hemorragia aguda ou cronica',
+                'Hemolise — destruicao acelerada de hemacias (imune, mecanica, enzimopatias)',
+                'Aplasia medular — falencia da medula ossea',
+                'Insuficiencia renal cronica — deficiencia de EPO',
+                'Talassemias — sintese defeituosa de cadeias de globina'
+            ]},
+            dica:'Nunca interprete hemacias isoladamente. A triade Ht/Hb/Hemacias e a base da avaliacao. Uma contagem de hemacias "normal" nao exclui anemia se a hemoglobina estiver baixa — pode haver macrocitose com menor numero de celulas, mas cada uma carregando mais Hb.',
+            correlacoes:['Hemoglobina','Hematocrito','VCM','RDW']
+        },
+        {
+            id:'hemoglobina', nome:'Hemoglobina', siglas:['Hb','HGB'],
+            unidade:'g/dL',
+            refTexto:'M: 13,5 — 17,5 | F: 12,0 — 16,0',
+            refM:[13.5,17.5], refF:[12.0,16.0],
+            descricao:'A hemoglobina e uma metaloproteina tetramerica (2 alfa + 2 beta) presente no interior das hemacias, contendo 4 grupos heme cada um com um atomo de ferro Fe2+. E responsavel pela ligacao reversivel do O2. A OMS define anemia como Hb < 13 g/dL em homens, < 12 g/dL em mulheres e < 11 g/dL em gestantes. E o parametro mais utilizado para classificar e monitorar anemias.',
+            aumento:{titulo:'Hemoglobina elevada',causas:[
+                'Policitemia vera — producao autonoma independente de EPO',
+                'Hipoxia cronica — estimulo fisiologico de EPO',
+                'Desidratacao — hemoconcentracao relativa',
+                'Tumores secretores de EPO',
+                'Tabagismo intenso — carboxihemoglobina e hipoxia relativa'
+            ]},
+            diminuicao:{titulo:'Anemia (classificacao pela Hb)',causas:[
+                'Leve: 10-12/13 g/dL — geralmente assintomatica',
+                'Moderada: 7-10 g/dL — palidez, cansaco, taquicardia',
+                'Grave: < 7 g/dL — sintomas cardiopulmonares, sinais de descompensacao',
+                'As mesmas causas da reducao de hemacias se aplicam',
+                'Na gestacao: Hb < 11 g/dL por hemodiluicao fisiologica'
+            ]},
+            dica:'A Hb e o parametro-ouro para diagnostico de anemia. Na pratica, sempre comece pela Hb e depois use os indices hematimetricos (VCM e HCM) para classificar a morfologia da anemia. Lembre-se: Hb pode estar falsamente elevada em desidratados e falsamente reduzida em gestantes (hemodilucao).',
+            correlacoes:['Hematocrito','Hemacias','VCM','HCM','CHCM']
+        },
+        {
+            id:'hematocrito', nome:'Hematocrito', siglas:['Ht','HCT'],
+            unidade:'%',
+            refTexto:'M: 40 — 54 | F: 36 — 48',
+            refM:[40,54], refF:[36,48],
+            descricao:'O hematocrito representa a porcentagem do volume total de sangue ocupado pelas hemacias. E determinado por centrifugacao ou calculado automaticamente (Ht = Hb x VCM / 10, aproximadamente). Reflete a relacao entre a massa eritrocitaria e o volume plasmatico. Alteracoes plasmaticas (desidratacao, hiperhidratacao) afetam diretamente o Ht independentemente da massa eritrocitaria real.',
+            aumento:{titulo:'Hematocrito elevado',causas:[
+                'Hemoconcentracao — desidratacao, queimaduras extensas, diurese osmotica',
+                'Policitemia vera — aumento real da massa eritrocitaria',
+                'Hipoxia cronica — DPOC, apneia do sono, altitude',
+                'Uso de EPO exogena (doping)'
+            ]},
+            diminuicao:{titulo:'Hematocrito reduzido',causas:[
+                'Todas as causas de anemia',
+                'Hemodilucao — hiperhidratacao, gestacao (aumento do volume plasmatico)',
+                'Insuficiencia cardiaca congestiva — retencao hidrica',
+                'Esplenomegalia gigante — sequestro esplenico'
+            ]},
+            dica:'O Ht e sensivel a alteracoes do volume plasmatico. Um Ht elevado em um paciente desidratado pode normalizar apos reidratacao, revelando uma massa eritrocitaria real normal. Sempre correlacione com proteinas plasmaticas e estado hidratacional do paciente.',
+            correlacoes:['Hemoglobina','Hemacias','VCM']
+        },
+        {
+            id:'vcm', nome:'Volume Corpuscular Medio', siglas:['VCM','MCV'],
+            unidade:'fL (femtolitros)',
+            refTexto:'80 — 100 fL',
+            refM:[80,100], refF:[80,100],
+            descricao:'O VCM e o volume medio de cada hemacia, calculado pela divisao do hematocrito pelo numero de hemacias (VCM = Ht x 10 / RBC). E o indice hematimetrico mais importante para classificacao morfologica das anemias. A automate hematologica mede diretamente por impedancia ou difracao laser. Classifica as hemacias em: microciticas (<80 fL), normociticas (80-100 fL) ou macrociticas (>100 fL).',
+            aumento:{titulo:'Macrocitose (VCM > 100 fL)',causas:[
+                'Deficiencia de vitamina B12 — anemia megaloblastica',
+                'Deficiencia de acido folico — anemia megaloblastica',
+                'Alcoolismo cronico — toxicidade direta na medula',
+                'Doenca hepatica — alteracao do metabolismo lipídico da membrana',
+                'Hipotireoidismo — reducao do turnover celular',
+                'Drogas — metotrexato, azatioprina, hidroxiureia, zidovudina',
+                'Reticulocitose — celulas jovens sao naturalmente maiores',
+                'Mielodisplasia — displasia eritroide'
+            ]},
+            diminuicao:{titulo:'Microcitose (VCM < 80 fL)',causas:[
+                'Anemia ferropriva — causa mais comum de microcitose',
+                'Talassemia — defeito na sintese de globina',
+                'Anemia de doenca cronica — bloqueio do aproveitamento do ferro',
+                'Intoxicacao por chumbo — inibe a sintese de heme',
+                'Hemoglobinopatia C — hemacia em alvo, microcitica',
+                'Anemia sideroblastica — defeito na incorporacao do ferro ao heme'
+            ]},
+            dica:'O VCM e o primeiro indice a ser avaliado na classificacao de anemias. Porem, um VCM normal nao exclui anemia — anemias mistas (ferropriva + B12) ou doenca cronica podem ter VCM na faixa normal. Sempre correlacione com HCM e RDW para refinar o diagnostico diferencial.',
+            correlacoes:['HCM','CHCM','Hemoglobina','RDW']
+        },
+        {
+            id:'hcm', nome:'Hemoglobina Corpuscular Media', siglas:['HCM','MCH'],
+            unidade:'pg (picogramas)',
+            refTexto:'27 — 32 pg',
+            refM:[27,32], refF:[27,32],
+            descricao:'O HCM representa a massa media de hemoglobina por hemacia, calculado pela divisao da hemoglobina total pelo numero de hemacias (HCM = Hb x 10 / RBC). Indica o conteudo de Hb em cada celula individual. Classifica as hemacias em: hipocromicas (<27 pg), normocromicas (27-32 pg) ou hipercromicas (>32 pg). Na pratica clinica, VCM e HCM costumam andar juntos, mas discordancias sao uteis no diagnostico diferencial.',
+            aumento:{titulo:'Hipercromia (HCM > 32 pg)',causas:[
+                'Anemia megaloblastica — celulas grandes com mais Hb',
+                'Esferocitose hereditaria — perda de membrana, celula esferica e densa',
+                'Doenca hemolitica autoimune — esferocitos'
+            ]},
+            diminuicao:{titulo:'Hipocromia (HCM < 27 pg)',causas:[
+                'Anemia ferropriva — reducao da sintese de hemoglobina',
+                'Talassemia — reducao da sintese de globina',
+                'Anemia de doenca cronica — bloqueio de ferro',
+                'Sideroblastica — falha na incorporacao do ferro ao heme'
+            ]},
+            dica:'Na pratica, o HCM e menos discriminativo que o VCM para diferenciar ferropriva de talassemia (ambas tem HCM baixo). O RDW e mais util nessa distincao. Porem, HCM alto com VCM alto e fortemente sugestivo de megaloblastica, enquanto HCM alto com VCM normal sugere esferocitose.',
+            correlacoes:['VCM','CHCM','Hemoglobina']
+        },
+        {
+            id:'chcm', nome:'Concentracao de Hemoglobina Corpuscular Media', siglas:['CHCM','MCHC'],
+            unidade:'g/dL',
+            refTexto:'32 — 36 g/dL',
+            refM:[32,36], refF:[32,36],
+            descricao:'O CHCM e a concentracao media de hemoglobina por unidade de volume de hemacia (CHCM = Hb x 100 / Ht). Diferente do HCM (que mede massa absoluta por celula), o CHCM mede a concentracao — ou seja, o quao "densa" em hemoglobina e a hemacia. Valores acima de 36 g/dL sao raros e altamente sugestivos de esferocitose, pois a celula perde membrana mas mantem o conteudo, ficando mais concentrada.',
+            aumento:{titulo:'Hipercromia concentrada (CHCM > 36 g/dL)',causas:[
+                'Esferocitose hereditaria — perda de membrana com retencao de Hb',
+                'Doenca hemolitica autoimune com esferocitose',
+                'Hemoglobinose C homozigota — celulas densas',
+                'Aglutinacao a frio — artefato de leitura (falso aumento)'
+            ]},
+            diminuicao:{titulo:'Hipocromia concentrada (CHCM < 32 g/dL)',causas:[
+                'Anemia ferropriva — celulas "pálidas" por falta de Hb',
+                'Talassemia — sintese reduzida de cadeias de globina',
+                'Anemia de doenca cronica',
+                'Sideroblastica'
+            ]},
+            dica:'O CHCM e o parametro mais especifico para hipocromia. Na esferocitose hereditaria, o CHCM e a "chave de ouro" — frequentemente e o unico indice aumentado. Valores acima de 36 g/dL devem sempre levantar suspeita de esferocitose. Atencao: aglutinacao a frio pode causar falso aumento do CHCM no analisador.',
+            correlacoes:['HCM','VCM','Hemoglobina']
+        },
+        {
+            id:'rdw', nome:'RDW — Indice de Anisocitose', siglas:['RDW','Red Cell Distribution Width'],
+            unidade:'%',
+            refTexto:'11,5 — 14,5%',
+            refM:[11.5,14.5], refF:[11.5,14.5],
+            descricao:'O RDW (Red Cell Distribution Width) mede a variacao de tamanho das hemacias — e um coeficiente de variacao do VCM. Indica o grau de anisocitose (diferenca de tamanho entre as hemacias). Um RDW elevado significa que a populacao de hemacias e heterogenea em tamanho, enquanto um RDW normal indica populacao homogenea. E um parametro subutilizado na pratica clinica, mas extremamente valioso no diagnostico diferencial de microcitoses.',
+            aumento:{titulo:'Anisocitose (RDW > 14,5%)',causas:[
+                'Anemia ferropriva — populacao mista de celulas normais e microciticas',
+                'Deficiencia de B12 ou folato em tratamento — populacao mista',
+                'Pos-transfusao — mistura de duas populacoes eritrocitarias',
+                'Hemorragia recente com resposta reticulocitica',
+                'Mielodisplasia — producao desregulada',
+                'Anemia hemolitica — reticulocitose com celulas de tamanhos variados',
+                'Fragmentacao mecanica — microangiopatia'
+            ]},
+            diminuicao:{titulo:'RDW baixo (< 11,5%)',causas:[
+                'Raramente significativo clinicamente',
+                'Pode ocorrer em talassemia minor (populacao muito uniforme)',
+                'Algumas anemias hereditarias com producao homogenea'
+            ]},
+            dica:'O RDW e a chave para diferenciar anemia ferropriva de talassemia minor quando ambas sao microciticas e hipocromicas: ferropriva tem RDW ALTO (populacao heterogenea) e talassemia tem RDW NORMAL (populacao homogenea). Essa simples correlacao pode evitar pedidos desnecessarios de eletroforese de hemoglobina.',
+            correlacoes:['VCM','HCM','Hemoglobina']
+        }
+    ],
+    leucograma: [
+        {
+            id:'leucocitos', nome:'Leucocitos Totais', siglas:['WBC','Gl. Brancos'],
+            unidade:'/mm³',
+            refTexto:'4.000 — 10.000/mm³',
+            refM:[4000,10000], refF:[4000,10000],
+            descricao:'Os leucocitos sao as celulas de defesa do organismo, produzidos na medula ossea e em tecidos linfoides. Incluem neutrofilos, linfocitos, monocitos, eosinofilos e basofilos. A contagem total reflete o balanco entre producao medular, distribuicao (circulante vs. marginal no endotelio) e destruicao/consumo tecidual. Apenas 5-10% do total de leucocitos estao na circulacao periferica — a grande maioria esta nos tecidos.',
+            aumento:{titulo:'Leucocitose (> 10.000/mm³)',causas:[
+                'Infeccao bacteriana — causa mais comum de leucocitose reacional',
+                'Infeccoes fúngicas graves',
+                'Processos inflamatorios agudos — pancreatite, peritonite',
+                'Estresse fisiologico — exercicio intenso, dor, convulsao, parto',
+                'Corticoterapia — desmarginalizacao e aumento da sobrevida neutrofilica',
+                'Leucemias — producao neoplasica descontrolada',
+                'Hemorragia aguda, hemolise',
+                'Tabagismo cronico — leucocitose cronica leve'
+            ]},
+            diminuicao:{titulo:'Leucopenia (< 4.000/mm³)',causas:[
+                'Infeccoes virais — dengue, influenza, HIV, hepatite, EBV',
+                'Sepse grave com neutropenia por consumo',
+                'Agranulocitose — reacao a drogas (carbamazepina, metimazol, clozapina)',
+                'Quimioterapia e radioterapia — toxicidade medular',
+                'Doencas autoimunes — lupo eritematoso sistemico',
+                'Mielodisplasia e aplasia medular',
+                'Hipoesplenismo — hiperesplenismo com sequestro',
+                'Deficiencias nutricionais — B12, folato, cobre'
+            ]},
+            dica:'Leucocitose nao e sinônimo de infeccao e leucopenia nao e sinônimo de saude. Um paciente com sepse grave pode ter leucopenia por consumo extremo. Sempre avalie a formula diferencial — o padrao de distribuicao e muito mais informativo que a contagem total isolada.',
+            correlacoes:['Neutrofilos','Linfocitos','Monocitos','Eosinofilos','Basofilos']
+        },
+        {
+            id:'neutrofilos_seg', nome:'Neutrofilos Segmentados', siglas:['NEUT','Seg','Neutrofilos maduros'],
+            unidade:'/mm³ ou %',
+            refTexto:'1.800 — 7.700/mm³ (40-75%)',
+            refM:[1800,7700], refF:[1800,7700],
+            descricao:'Os neutrofilos segmentados sao os leucocitos mais abundantes na circulacao periferica (40-75% do total). Sao celulas fagociticas de primeira linha de defesa contra bacterias e fungos. Seu nucleo apresenta segmentacao tipica em 3-5 lobulos conectados por filamentos de cromatina. A maturacao se da na medula: mieloblasto → promielocito → mielocito → metamielocito → bastonete → segmentado. O processo completo leva ~14 dias.',
+            aumento:{titulo:'Neutrofilia',causas:[
+                'Infeccao bacteriana aguda — piogenica, gram-negativa',
+                'Infeccoes fúngicas invasivas',
+                'Inflamacao esteril — infarto do miocardio, pancreatite, vasculite',
+                'Necrose tecidual — queimaduras, trauma extenso',
+                'Estresse — corticoides endogenos ou exogenos, adrenalina',
+                'Doencas mieloproliferativas — LMC, policitemia vera',
+                'Tabagismo cronico'
+            ]},
+            diminuicao:{titulo:'Neutropenia',causas:[
+                'Infeccoes virais — hepatite B/C, HIV, dengue, influenza',
+                'Drogas — antitiroideanos, anticonvulsivantes, antibioticos',
+                'Agranulocitose idiopatica ou autoimmune',
+                'Mielodisplasia, aplasia medular',
+                'Sepse com consumo massivo',
+                'Hiperesplenismo',
+                'Neutropenia ciclica — padrao periodico a cada 21 dias'
+            ]},
+            dica:'A neutrofilia reacional (infeccao) geralmente apresenta "desvio a esquerda" (aumento de bastonetes) e toxidez granular. Na leucemia mieloide cronica, a neutrofilia e desproporcionalmente alta com basofilia associada — padrao muito diferente de uma reacao infecciosa simples.',
+            correlacoes:['Bastonetes','Leucocitos totais','Basofilos']
+        },
+        {
+            id:'bastonetes', nome:'Neutrofilos Bastonetes', siglas:['BAND','Bastoes','Forms'],
+            unidade:'/mm³ ou %',
+            refTexto:'0 — 400/mm³ (0-5%)',
+            refM:[0,400], refF:[0,400],
+            descricao:'Os bastonetes sao neutrofilos imaturos, cujo nucleo ainda nao completou a segmentacao — apresenta formato de bastao, em "C" ou "S", sem a constricao que define os lobulos do segmentado. Sob condicoes normais, representam ate 5% dos leucocitos. Sua presenca aumentada na circulacao indica que a medula esta liberando celulas mais jovens para atender uma demanda aumentada — fenomeno chamado "desvio a esquerda".',
+            aumento:{titulo:'Desvio a esquerda',causas:[
+                'Infeccao bacteriana aguda ativa — sinal classico de resposta medular',
+                'Inflamacao aguda intensa — peritonite, sepse',
+                'Hemorragia aguda',
+                'Hemolise aguda',
+                'Intoxicacao (toxinas bacterianas, metais pesados)',
+                'Mieloproliferativas — presenca de formas mais jovens (metamielocitos, mielocitos)'
+            ]},
+            diminuicao:{titulo:'Reducao de bastonetes',causas:[
+                'Sem significado clinico isolado — valores zero sao normais',
+                'So e relevante quando avaliado em conjunto com o desvio a esquerda'
+            ]},
+            dica:'O desvio a esquerda reacional (bastonetes e eventualmente metamielocitos) e um marcador de infeccao bacteriana aguda com boa especificidade. Porem, a presenca de formas mais imaturas que bastonetes (promielocitos, mieloblastos) sugere processo neoplasico e nao reacional — isso e fundamental para diferenciar infeccao de leucemia.',
+            correlacoes:['Neutrofilos segmentados','Leucocitos totais']
+        },
+        {
+            id:'linfocitos', nome:'Linfocitos', siglas:['LYMPH','Linfo'],
+            unidade:'/mm³ ou %',
+            refTexto:'1.000 — 4.000/mm³ (20-50%)',
+            refM:[1000,4000], refF:[1000,4000],
+            descricao:'Os linfocitos sao as celulas centrais da imunidade adaptativa. Incluem linfocitos T (celular — CD4 e CD8), linfocitos B (humoral — producao de anticorpos) e celulas NK (natural killer — imunidade inata). Na circulacao periferica, predominam os linfocitos T (70-80%). Sao celulas pequenas com nucleo roundo e citoplasma escasso. Tem vida media longa: dias a anos para celulas de memoria.',
+            aumento:{titulo:'Linfocitose',causas:[
+                'Infeccoes virais — mononucleose infecciosa (EBV), citomegalovirose, hepatite, sarampo, coxsackie',
+                'Toxoplasmose aguda',
+                'Leucemia linfocitica cronica (LLC) — causa mais importante de excluir',
+                'Leucemia linfoblastica aguda (LLA) — principalmente na infancia',
+                'Hiperatividade imune — doencas autoimunes',
+                'Pos-infeccioso — linfocitose persistente apos resolucao'
+            ]},
+            diminuicao:{titulo:'Linfopenia',causas:[
+                'HIV/AIDS — linfopenia de CD4 e marcador de progressao',
+                'Corticoterapia — redistribuicao e apoptose de linfocitos',
+                'Quimioterapia e radioterapia',
+                'Estresse agudo intenso — cirurgia, trauma, sepse',
+                'Doencas autoimunes — LES, artrite reumatoide',
+                'Imunodeficiencias primarias — doenca de Bruton, SCID',
+                'Tuberculose disseminada',
+                'Desnutricao proteico-calorica severa'
+            ]},
+            dica:'Linfocitose reacional (virais) geralmente apresenta linfocitos atipicos — celulas maiores, com citoplasma mais abundante e basofilo, nucleo irregular. Na mononucleose, ate 10% dos linfocitos podem ser atipicos. Ja na LLC, os linfocitos sao maduros e morfologicamente "sensiveis" (smudge cells na lâmina).',
+            correlacoes:['Leucocitos totais','Neutrofilos','Monocitos']
+        },
+        {
+            id:'monocitos', nome:'Monocitos', siglas:['MONO','Mono'],
+            unidade:'/mm³ ou %',
+            refTexto:'100 — 800/mm³ (2-10%)',
+            refM:[100,800], refF:[100,800],
+            descricao:'Os monocitos sao os maiores leucocitos da circulacao periferica, com nucleo reniforme ou em "U" e citoplasma abundante com granulacoes finas. Apos migrarem para os tecidos (24-48h na circulacao), diferenciam-se em macrofagos ou celulas dendriticas. Sao fundamentais na fagocitose, apresentacao de antigeno, producao de citocinas e na regulacao da inflamacao e reparo tecidual.',
+            aumento:{titulo:'Monocitose',causas:[
+                'Infeccoes cronicas — tuberculose, endocardite subaguda, sifilis',
+                'Infeccoes fungicas — histoplasmose, criptococose',
+                'Doencas inflamatorias cronicas — artrite reumatoide, LES, colite ulcerativa',
+                'Doencas granulomatosas — sarcoidose, doenca de Crohn',
+                'Neoplasias — leucemia mieloide cronica, leucemia mielomonocitica cronica',
+                'Fase de recuperacao de infeccoes agudas',
+                'Pos-esplenectomia'
+            ]},
+            diminuicao:{titulo:'Monocitopenia',causas:[
+                'Geralmente sem significado clinico isolado',
+                'Aplasia medular severa',
+                'Tratamento com glicocorticoides em altas doses',
+                'Quimioterapia intensa'
+            ]},
+            dica:'A monocitose e um marcador de inflamacao cronica. Na pratica clinica, monocitos persistentemente elevados em um paciente com sintomas inespecificos devem levantar suspeita de tuberculose, endocardite ou neoplasia mieloproliferativa. Monocitose transitória e comum na convalescenca de infeccoes agudas.',
+            correlacoes:['Leucocitos totais','Linfocitos','Neutrofilos']
+        },
+        {
+            id:'eosinofilos', nome:'Eosinofilos', siglas:['EOS','Eosino'],
+            unidade:'/mm³ ou %',
+            refTexto:'0 — 500/mm³ (0-5%)',
+            refM:[0,500], refF:[0,500],
+            descricao:'Os eosinofilos sao granulocitos com afinidade por corantes acidos (eosina), apresentando grânulos citoplasmaticos grandes e refrateis contendo proteinas catonicas (proteina basica maior, peroxidase eosinofilica). Participam de respostas imunes contra parasitas helminticos, modulacao de reacoes alergicas e resposta anti-inflamatoria. Tem vida media curta na circulacao (6-12h) mas sobrevivem semanas nos tecidos.',
+            aumento:{titulo:'Eosinofilia',causas:[
+                'Parasitoses intestinais — Ascaris, Ancilostomo, Strongyloides, Echinococcus',
+                'Doencas alergicas — asma bronquica, rinite alergica, urticaria, dermatite atópica',
+                'Reacoes medicamentosas — DRESS, eosinofilia induzida por drogas',
+                'Doencas pulmonares eosinofilicas — aspergilose broncopulmonar alergica',
+                'Doencas do tecido conjuntivo — sindrome de Churg-Strauss (EGPA)',
+                'Sindrome hipereosinofilica — eosinofilia > 1.500/mm³ sem causa definida',
+                'Neoplasias — LMC, linfoma de Hodgkin, leucemia eosinofilica'
+            ]},
+            diminuicao:{titulo:'Eosinopenia',causas:[
+                'Estresse agudo — cortisol endogeno elevado (cirurgia, trauma, sepse)',
+                'Corticoterapia exogena — efeito farmacologico direto',
+                'Sindrome de Cushing',
+                'Infeccao aguda — especialmente bacteriana grave'
+            ]},
+            dica:'Eosinopenia e um dos primeiros sinais laboratoriais de estresse agudo (inclusive sepse), muitas vezes precedendo outras alteracoes. Eosinofilia acima de 1.500/mm³ por mais de 6 meses sem causa aparente configura sindrome hipereosinofilica e requer investigacao urgente por risco de dano organico (coracao, SNC).',
+            correlacoes:['Leucocitos totais','Basofilos']
+        },
+        {
+            id:'basofilos', nome:'Basofilos', siglas:['BASO','Baso'],
+            unidade:'/mm³ ou %',
+            refTexto:'0 — 100/mm³ (0-1%)',
+            refM:[0,100], refF:[0,100],
+            descricao:'Os basofilos sao os leucocitos menos abundantes na circulacao periferica (0-1%). Possuem grânulos citoplasmaticos grandes que se coram com corantes basicos, contendo heparina, histamina e leucotrienos. Sao celulas mediadoras de reacoes de hipersensibilidade imediata (tipo I) e participam de respostas alergicas e anafilaticas. Compartilham precursores medulares com os mastócitos teciduais, mas sao celulas distintas.',
+            aumento:{titulo:'Basofilia',causas:[
+                'Leucemia mieloide cronica — basofilia persistente e sinal diagnostico',
+                'Policitemia vera — pode apresentar basofilia moderada',
+                'Reacoes alergicas severas — anafilaxia',
+                'Doenca inflamatoria cronica — colite ulcerativa, artrite reumatoide',
+                'Hipotireoidismo',
+                'Mielofibrose',
+                'Infeccao por varicela'
+            ]},
+            diminuicao:{titulo:'Basopenia',causas:[
+                'Sem significado clinico isolado — valores zero sao normais',
+                'Estresse agudo, corticoterapia (similar a eosinopenia)',
+                'Hipertireoidismo'
+            ]},
+            dica:'Basofilia significativa em um hemograma de rotina deve SEMPRE levantar suspeita de neoplasia mieloproliferativa, especialmente LMC. Na LMC, a basofilia e um criterio diagnostico (WHO) e pode atingir 10-20% dos leucocitos. E um achado que poucos profissionais valorizam, mas que pode ser a pista inicial para um diagnostico onco-hematologico.',
+            correlacoes:['Leucocitos totais','Eosinofilos','Neutrofilos']
+        }
+    ],
+    trombograma: [
+        {
+            id:'plaquetas', nome:'Plaquetas', siglas:['PLT','Plaq'],
+            unidade:'/mm³',
+            refTexto:'150.000 — 400.000/mm³',
+            refM:[150000,400000], refF:[150000,400000],
+            descricao:'As plaquetas sao fragmentos citoplasmaticos anucleados derivados da fragmentacao dos megacariocitos medulares. Cada megacariocito gera 2.000-4.000 plaquetas. Tem funcao central na hemostasia primaria: adesao ao subendotelio lesado (via GP Ib-IX-V e fator de von Willebrand), ativacao e agregacao (via GP IIb/IIIa e fibrinogenio) e formacao do trombo plaquetario. Tambem participam da inflamacao, imunidade e angiogenese. Vida media de 7-10 dias.',
+            aumento:{titulo:'Trombocitose (> 400.000/mm³)',causas:[
+                'Trombocitose reacional (secundaria) — causa mais comum:',
+                '  - Infeccao e inflamacao aguda ou cronica',
+                '  - Deficiencia de ferro (paradoxalmente)',
+                '  - Pos-esplenectomia ou asplenia funcional',
+                '  - Hemorragia aguda',
+                '  - Pos-operatorio',
+                'Trombocitose primaria (clonal):',
+                '  - Trombocitemia essencial — neoplasia mieloproliferativa',
+                '  - Policitemia vera, LMC, mielofibrose primaria'
+            ]},
+            diminuicao:{titulo:'Trombocitopenia (< 150.000/mm³)',causas:[
+                'Destruiçao periferica aumentada:',
+                '  - PTI (púrpura trombocitopenica imune) — causa mais comum',
+                '  - PTI secundaria — HIV, lupo, farmacos (heparina)',
+                '  - PTT / SHU — microangiopatia trombotica',
+                '  - Sepse e CID',
+                'Producao medular reduzida:',
+                '  - Aplasia medular, mielodisplasia',
+                '  - Infiltracao medular (leucemia, metastase)',
+                '  - Quimioterapia, radioterapia',
+                '  - Deficiencia de B12 ou folato',
+                'Sequestro esplenico:',
+                '  - Esplenomegalia gigante',
+                '  - Hipertensao portal',
+                'Infeccoes virais — dengue (clássico), HIV, hepatite'
+            ]},
+            dica:'Na dengue, a trombocitopenia e um marcador critico: queda abaixo de 100.000/mm³ associada a sinais de alarme (dor abdominal, vomitos, hidropsia) indica risco de dengue grave. Na PTI, plaquetas podem estar < 10.000/mm³ mas o paciente pode estar assintomatico — o risco nao e proporcional ao numero. Sempre correlacione com o VPM.',
+            correlacoes:['VPM','PCT','Hemacias','Leucocitos']
+        },
+        {
+            id:'vpm', nome:'Volume Plaquetario Medio', siglas:['VPM','MPV'],
+            unidade:'fL',
+            refTexto:'7,4 — 10,4 fL',
+            refM:[7.4,10.4], refF:[7.4,10.4],
+            descricao:'O VPM e o volume medio das plaquetas, analogo ao VCM para hemacias. Plaquetas jovens (recem-liberadas da medula) sao maiores do que plaquetas velhas. Assim, o VPM reflete indiretamente o turnover plaquetario: VPM alto sugere producao aumentada com liberacao de plaquetas jovens (destruicao periferica), enquanto VPM baixo sugere producao reduzida ou envelhecimento plaquetario prolongado.',
+            aumento:{titulo:'VPM elevado (> 10,4 fL)',causas:[
+                'Destruicao periferica aumentada — PTI (classico)',
+                'Recuperacao pos-trombocitopenia — medula respondendo',
+                'Sindrome de Bernard-Soulier — plaquetas gigantes congenitas',
+                'Doenca de May-Hegglin — inclusões de Dohle, plaquetas grandes',
+                'Trombocitose reacional — producao acelerada',
+                'Pos-esplenectomia'
+            ]},
+            diminuicao:{titulo:'VPM reduzido (< 7,4 fL)',causas:[
+                'Hipoproducao medular — aplasia, mielodisplasia',
+                'Infiltracao medular — leucemia, fibrose',
+                'Quimioterapia / radioterapia',
+                'Sindrome de Wiskott-Aldrich — plaquetas pequenas',
+                'Deficiencia de B12 ou folato'
+            ]},
+            dica:'O VPM e o melhor marcador simples para diferenciar trombocitopenia central (producao reduzida — VPM baixo/normal) de trombocitopenia periferica (destruicao aumentada — VPM alto). Na PTI, plaquetas baixas com VPM alto e um padrao quase patognomonico. Essa correlacao Plaq/VPM e tao util quanto VCM/RDW para anemias.',
+            correlacoes:['Plaquetas','PCT']
+        },
+        {
+            id:'pct', nome:'Plaquetocrito', siglas:['PCT'],
+            unidade:'%',
+            refTexto:'0,15 — 0,35%',
+            refM:[0.15,0.35], refF:[0.15,0.35],
+            descricao:'O plaquetocrito (PCT) representa a porcentagem do volume sanguineo total ocupado pelas plaquetas, analogo ao hematocrito para hemacias. E calculado multiplicando-se a contagem de plaquetas pelo VPM e dividindo por 10.000. Reflete a massa plaquetaria total circulante, combinando informacoes de contagem e volume. Em condicoes normais, as plaquetas ocupam uma fraçao muito pequena do volume sanguineo.',
+            aumento:{titulo:'PCT elevado',causas:[
+                'Trombocitose reacional — infeccao, inflamacao',
+                'Trombocitemia essencial',
+                'Pós-esplenectomia',
+                'Resposta medular a destruicao periferica'
+            ]},
+            diminuicao:{titulo:'PCT reduzido',causas:[
+                'Trombocitopenia — qualquer causa',
+                'VPM baixo com plaquetas normais — massa plaquetaria reduzida apesar da contagem'
+            ]},
+            dica:'O PCT e um parametro frequentemente ignorado na pratica clinica, mas e util quando ha discordancia entre contagem de plaquetas e VPM. Por exemplo: plaquetas normais com VPM baixo podem ter PCT reduzido, indicando que a massa plaquetaria funcional e menor do que a contagem sugere. Em neoplasias mieloproliferativas, o PCT pode estar elevado antes da trombocitose se tornar evidente.',
+            correlacoes:['Plaquetas','VPM']
+        }
+    ]
+};
+
+// ============================================================
+// PARÂMETROS DO SIMULADOR
+// ============================================================
+const simParams = [
+    { id:'hb', nome:'Hemoglobina', unidade:'g/dL', min:5, max:22, step:0.1, defM:15, defF:13.5, refM:[13.5,17.5], refF:[12.0,16.0], absMin:4, absMax:24 },
+    { id:'vcm', nome:'VCM', unidade:'fL', min:55, max:130, step:0.5, defM:88, defF:88, refM:[80,100], refF:[80,100], absMin:50, absMax:140 },
+    { id:'hcm', nome:'HCM', unidade:'pg', min:18, max:42, step:0.1, defM:29.5, defF:29.5, refM:[27,32], refF:[27,32], absMin:15, absMax:45 },
+    { id:'rdw', nome:'RDW', unidade:'%', min:9, max:25, step:0.1, defM:13, defF:13, refM:[11.5,14.5], refF:[11.5,14.5], absMin:8, absMax:28 },
+    { id:'wbc', nome:'Leucocitos', unidade:'/mm³', min:500, max:50000, step:100, defM:6500, defF:6500, refM:[4000,10000], refF:[4000,10000], absMin:0, absMax:60000 },
+    { id:'neut', nome:'Neutrofilos %', unidade:'%', min:0, max:100, step:1, defM:60, defF:60, refM:[40,75], refF:[40,75], absMin:0, absMax:100 },
+    { id:'linfo', nome:'Linfocitos %', unidade:'%', min:0, max:100, step:1, defM:32, defF:32, refM:[20,50], refF:[20,50], absMin:0, absMax:100 },
+    { id:'mono', nome:'Monocitos %', unidade:'%', min:0, max:30, step:0.5, defM:6, defF:6, refM:[2,10], refF:[2,10], absMin:0, absMax:35 },
+    { id:'eos', nome:'Eosinofilos %', unidade:'%', min:0, max:40, step:0.5, defM:2.5, defF:2.5, refM:[0,5], refF:[0,5], absMin:0, absMax:50 },
+    { id:'plaquetas', nome:'Plaquetas', unidade:'/mm³', min:5000, max:900000, step:1000, defM:275000, defF:275000, refM:[150000,400000], refF:[150000,400000], absMin:0, absMax:1000000 }
+];
+
+// ============================================================
+// CENÁRIOS CLÍNICOS
+// ============================================================
+const scenarios = [
+    { nome:'Normal', icon:'fa-check-circle', color:'#2ecc71', vals:{hb:'M:15|F:13.5',vcm:88,hcm:29.5,rdw:13,wbc:6500,neut:60,linfo:32,mono:6,eos:2.5,plaquetas:275000}},
+    { nome:'Anemia Ferropriva', icon:'fa-droplet-slash', color:'#e74c3c', vals:{hb:'M:9.5|F:8.5',vcm:72,hcm:23,rdw:17.5,wbc:5500,neut:58,linfo:34,mono:6,eos:2,plaquetas:450000}},
+    { nome:'Anemia Megaloblastica', icon:'fa-circle-plus', color:'#e67e22', vals:{hb:'M:8.8|F:7.8',vcm:112,hcm:36,rdw:18,wbc:3500,neut:35,linfo:55,mono:8,eos:2,plaquetas:120000}},
+    { nome:'Talassemia Minor', icon:'fa-dna', color:'#9b59b6', vals:{hb:'M:11.5|F:10.5',vcm:68,hcm:22,rdw:12.8,wbc:6200,neut:62,linfo:30,mono:6,eos:2,plaquetas:280000}},
+    { nome:'Infeccao Bacteriana', icon:'fa-bacteria', color:'#e74c3c', vals:{hb:'M:14|F:12.5',vcm:90,hcm:30,rdw:13.2,wbc:16500,neut:85,linfo:8,mono:5,eos:2,plaquetas:350000}},
+    { nome:'Infeccao Viral', icon:'fa-virus', color:'#f39c12', vals:{hb:'M:14.5|F:13',vcm:89,hcm:29.5,rdw:13,wbc:3200,neut:28,linfo:62,mono:8,eos:2,plaquetas:180000}},
+    { nome:'Dengue', icon:'fa-mosquito', color:'#e74c3c', vals:{hb:'M:15.5|F:14',vcm:92,hcm:31,rdw:13.5,wbc:2200,neut:22,linfo:68,mono:8,eos:2,plaquetas:65000}},
+    { nome:'Policitemia Vera', icon:'fa-arrow-up', color:'#c0392b', vals:{hb:'M:20|F:18.5',vcm:95,hcm:33,rdw:13,wbc:14500,neut:72,linfo:18,mono:6,eos:3,plaquetas:520000}},
+    { nome:'LLC', icon:'fa-shield-virus', color:'#8e44ad', vals:{hb:'M:11|F:10',vcm:86,hcm:28,rdw:14,wbc:52000,neut:12,linfo:85,mono:2,eos:1,plaquetas:135000}}
+];
+
+// ============================================================
+// DICAS PRÁTICAS
+// ============================================================
+const tips = [
+    { titulo:'Regra dos 3 indices para anemia', texto:'Sempre que houver anemia, classifique usando VCM + HCM + RDW. Esse trio permite diferenciar >90% dos casos: microcitica hipocromica (ferropriva vs talassemia pelo RDW), macrocitica (B12 vs alcoolismo vs reticulocitose), normocitica (doenca cronica vs hemolise vs sangramento).' },
+    { titulo:'Neutrofilos totais vs relativos', texto:'Na leucopenia, os percentuais relativos sao enganosos. Exemplo: 2.000 leucocitos com 70% de neutrofilos = 1.400 neutrofilos (neutropenia). Calcule SEMPRE os valores absolutos (total x % / 100) antes de classificar.' },
+    { titulo:'RDW na pratica', texto:'RDW alto + VCM baixo = ferropriva ate prova em contrario. RDW normal + VCM baixo = pensar em talassemia. RDW alto + VCM alto = tratamento de megaloblastica, hemolise ou anemia mista. RDW normal + VCM normal = doenca cronica, sangramento agudo.' },
+    { titulo:'Plaquetas + VPM', texto:'Trombocitopenia com VPM alto = destruicao periferica (PTI). Trombocitopenia com VPM baixo/normal = problema medular (aplasia, infiltracao). E a correlacao mais util do trombograma.' },
+    { titulo:'Basofilia = alerta vermelho', texto:'Basofilos acima de 2-3% em hemograma de rotina deve levantar imediata suspeita de neoplasia mieloproliferativa, especialmente LMC. Nao ignore esse achado.' },
+    { titulo:'Hematocrito e hidratacao', texto:'Ht elevado isolado sem correspondencia com Hb e hemacias pode ser artefato de desidratacao. Correlacione com ureia, creatinina e exame fisico antes de investigar policitemia.' },
+    { titulo:'Linfocitos atipicos', texto:'Linfocitose com >10% de linfocitos atipicos e classico de mononucleose infecciosa. Porem, qualquer infeccao viral pode causar some atipia. A diferenciação entre linfocitos atipicos reacionais e celulas leucemicas requer morfologia em lâmina e, se necessario, imunofenotipagem.' },
+    { titulo:'Eosinopenia como marcador de sepse', texto:'Eosinopenia (< 40/mm³) nas primeiras 24h de internacao tem valor preditivo negativo para sepse — ou seja, eosinofilos presentes tornam sepse menos provavel. E um marcador barato e subutilizado.' }
+];
+
+// ============================================================
+// FLUXOGRAMA
+// ============================================================
+const flowSteps = [
+    { text:'Hemoglobina abaixo do referencia?', type:'decision' },
+    { text:'Sim — Anemia confirmada. Proximo passo: classificar morfologia.', type:'result-red', indent:1 },
+    { text:'Nao — Sem anemia. Avaliar outras series se houver indicacao clinica.', type:'result-green', indent:1 },
+    { text:'VCM < 80 fL?', type:'decision', indent:1, showIf:'anemia' },
+    { text:'Sim — Microcitica. Verificar HCM e RDW:', type:'result-red', indent:2, showIf:'anemia' },
+    { text:'HCM baixo + RDW alto → Anemia Ferropriva (solicitar ferritina)', type:'detail', indent:3, showIf:'anemia' },
+    { text:'HCM baixo + RDW normal → Talassemia minor (solicitar eletroforese de Hb)', type:'detail', indent:3, showIf:'anemia' },
+    { text:'Nao — VCM 80-100 fL. Normocitica. Verificar RDW e reticulocitos:', type:'result-red', indent:2, showIf:'anemia' },
+    { text:'RDW alto + reticulocitos altos → Hemolise ou sangramento agudo', type:'detail', indent:3, showIf:'anemia' },
+    { text:'RDW normal + reticulocitos normais/baixos → Doenca cronica, insuficiencia renal, aplasia', type:'detail', indent:3, showIf:'anemia' },
+    { text:'VCM > 100 fL?', type:'decision', indent:1, showIf:'anemia' },
+    { text:'Sim — Macrocitica. Investigar:', type:'result-red', indent:2, showIf:'anemia' },
+    { text:'B12 e folato baixos → Anemia megaloblastica carencial', type:'detail', indent:3, showIf:'anemia' },
+    { text:'B12 e folato normais → Alcoolismo, hepatopatia, hipotireoidismo, mielodisplasia, farmacos', type:'detail', indent:3, showIf:'anemia' },
+];
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let currentSex = 'M';
+let currentTab = 'eritrograma';
+
+// ============================================================
+// FUNÇÕES DE RENDERIZAÇÃO
+// ============================================================
+
+// Gerar células flutuantes
+function initCells() {
+    const container = document.getElementById('cells-container');
+    const types = ['cell-eritro','cell-leuco','cell-plaqueta'];
+    for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        const type = types[i % 3];
+        const size = type === 'cell-plaqueta' ? 4+Math.random()*6 : 10+Math.random()*20;
+        cell.className = `floating-cell ${type}`;
+        cell.style.cssText = `
+            width:${size}px; height:${size}px;
+            left:${Math.random()*100}%;
+            animation-duration:${15+Math.random()*25}s;
+            animation-delay:${-Math.random()*30}s;
+        `;
+        container.appendChild(cell);
+    }
+}
+
+// Renderizar cards de uma série
+function renderCards(serie) {
+    const data = hemogramaData[serie];
+    const badgeClass = serie === 'eritrograma' ? 'badge-vermelha' : serie === 'leucograma' ? 'badge-branca' : 'badge-plaquetar';
+    const container = document.getElementById('tab-content');
+    container.innerHTML = `<div class="tab-content">${data.map(v => `
+        <div class="var-card" id="card-${v.id}">
+            <div class="var-card-header" onclick="toggleCard('${v.id}')">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="badge ${badgeClass}">${serie === 'eritrograma' ? 'VERMELHA' : serie === 'leucograma' ? 'BRANCA' : 'PLAQUETAR'}</span>
+                        <div>
+                            <h3 class="font-display font-bold text-lg">${v.nome}</h3>
+                            <p class="text-xs text-muted mt-0.5">${v.siglas.join(' / ')} — ${v.unidade}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-mono text-gold-500 bg-gold-500/10 px-3 py-1 rounded-lg hidden sm:inline-block">${v.refTexto}</span>
+                        <i class="fas fa-chevron-down card-chevron text-muted text-sm"></i>
+                    </div>
+                </div>
+                <div class="text-sm font-mono text-gold-500 bg-gold-500/10 px-3 py-1 rounded-lg mt-2 sm:hidden">${v.refTexto}</div>
+            </div>
+            <div class="var-card-body">
+                <p class="text-sm leading-relaxed text-bone/85 mb-5">${v.descricao}</p>
+
+                <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-red-500/5 border border-red-500/10 rounded-lg p-4">
+                        <h4 class="font-display font-semibold text-red-400 text-sm mb-2 flex items-center gap-2">
+                            <i class="fas fa-arrow-up text-xs"></i>${v.aumento.titulo}
+                        </h4>
+                        ${v.aumento.causas.map(c => `<div class="causa-item causa-up">${c}</div>`).join('')}
+                    </div>
+                    <div class="bg-blue-500/5 border border-blue-500/10 rounded-lg p-4">
+                        <h4 class="font-display font-semibold text-blue-400 text-sm mb-2 flex items-center gap-2">
+                            <i class="fas fa-arrow-down text-xs"></i>${v.diminuicao.titulo}
+                        </h4>
+                        ${v.diminuicao.causas.map(c => `<div class="causa-item causa-down">${c}</div>`).join('')}
+                    </div>
+                </div>
+
+                <div class="dica-box">
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-lightbulb text-gold-500 mt-0.5"></i>
+                        <div>
+                            <p class="text-sm font-semibold text-gold-400 mb-1">Dica de Interpretacao</p>
+                            <p class="text-sm leading-relaxed text-bone/80">${v.dica}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-1.5">
+                    <span class="text-xs text-muted mr-1 self-center">Correlacoes:</span>
+                    ${v.correlacoes.map(c => `<span class="corr-tag">${c}</span>`).join('')}
+                </div>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
+// Toggle card
+function toggleCard(id) {
+    const card = document.getElementById('card-' + id);
+    card.classList.toggle('open');
+}
+
+// Trocar tab
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    renderCards(tab);
+}
+
+// ============================================================
+// SIMULADOR
+// ============================================================
+
+function getRef(param) {
+    return currentSex === 'M' ? param.refM : param.refF;
+}
+
+function getDef(param) {
+    return currentSex === 'M' ? param.defM : param.defF;
+}
+
+function renderSliders() {
+    const container = document.getElementById('sliders-container');
+    container.innerHTML = simParams.map(p => {
+        const def = getDef(p);
+        const ref = getRef(p);
+        const range = p.absMax - p.absMin;
+        const leftRef = ((ref[0] - p.absMin) / range * 100).toFixed(1);
+        const widthRef = ((ref[1] - ref[0]) / range * 100).toFixed(1);
+        const leftMark = ((def - p.absMin) / range * 100).toFixed(1);
+        return `
+        <div class="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-display font-semibold text-sm">${p.nome}</span>
+                <span class="font-mono text-sm" id="val-${p.id}" style="color:var(--success)">${formatVal(def, p)}</span>
+            </div>
+            <input type="range" id="slider-${p.id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${def}"
+                oninput="onSliderChange('${p.id}')">
+            <div class="ref-bar">
+                <div class="ref-bar-normal" style="left:${leftRef}%;width:${widthRef}%"></div>
+                <div class="ref-bar-marker normal" id="marker-${p.id}" style="left:${leftMark}%"></div>
+            </div>
+            <div class="flex justify-between mt-1.5">
+                <span class="text-[10px] text-muted">${p.absMin.toLocaleString('pt-BR')}</span>
+                <span class="text-[10px] text-green-500/60">${formatRef(p)}</span>
+                <span class="text-[10px] text-muted">${p.absMax.toLocaleString('pt-BR')}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function formatVal(val, p) {
+    if (p.id === 'plaquetas' || p.id === 'wbc') return Math.round(val).toLocaleString('pt-BR') + ' ' + p.unidade;
+    if (p.id === 'pct') return val.toFixed(2) + ' ' + p.unidade;
+    if (p.step < 1) return val.toFixed(1) + ' ' + p.unidade;
+    return Math.round(val) + ' ' + p.unidade;
+}
+
+function formatRef(p) {
+    const ref = getRef(p);
+    if (p.id === 'plaquetas' || p.id === 'wbc') return ref[0].toLocaleString('pt-BR') + ' — ' + ref[1].toLocaleString('pt-BR');
+    return ref[0] + ' — ' + ref[1];
+}
+
+function onSliderChange(id) {
+    const param = simParams.find(p => p.id === id);
+    const slider = document.getElementById('slider-' + id);
+    const val = parseFloat(slider.value);
+    const ref = getRef(param);
+    const range = param.absMax - param.absMin;
+
+    // Atualizar display
+    const valEl = document.getElementById('val-' + id);
+    valEl.textContent = formatVal(val, param);
+
+    // Classificar
+    let status = 'normal';
+    if (val < ref[0]) status = 'low';
+    else if (val > ref[1]) status = 'high';
+    valEl.style.color = status === 'normal' ? 'var(--success)' : 'var(--danger)';
+
+    // Mover marcador
+    const marker = document.getElementById('marker-' + id);
+    const left = ((val - param.absMin) / range * 100).toFixed(1);
+    marker.style.left = left + '%';
+    marker.className = 'ref-bar-marker ' + status;
+
+    updateInterpretation();
+}
+
+function setSex(sex) {
+    currentSex = sex;
+    document.getElementById('sex-m').classList.toggle('active', sex === 'M');
+    document.getElementById('sex-f').classList.toggle('active', sex === 'F');
+    renderSliders();
+    updateInterpretation();
+}
+
+function resetSimulator() {
+    currentSex = 'M';
+    document.getElementById('sex-m').classList.add('active');
+    document.getElementById('sex-f').classList.remove('active');
+    renderSliders();
+    updateInterpretation();
+}
+
+function loadScenario(idx) {
+    const sc = scenarios[idx];
+    simParams.forEach(p => {
+        const rawVal = sc.vals[p.id];
+        let val;
+        if (typeof rawVal === 'string' && rawVal.includes('|')) {
+            val = parseFloat(rawVal.split('|').find(s => s.startsWith(currentSex === 'M' ? 'M' : 'F')).split(':')[1]);
+        } else {
+            val = parseFloat(rawVal);
+        }
+        const slider = document.getElementById('slider-' + p.id);
+        if (slider) {
+            slider.value = val;
+            onSliderChange(p.id);
+        }
+    });
+    // Scroll suave para o simulador
+    document.getElementById('simulador').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderScenarios() {
+    const container = document.getElementById('scenarios-container');
+    container.innerHTML = scenarios.map((sc, i) => `
+        <button class="scenario-btn" onclick="loadScenario(${i})">
+            <i class="fas ${sc.icon} mr-1.5" style="color:${sc.color}"></i>${sc.nome}
+        </button>
+    `).join('');
+}
+
+// ============================================================
+// INTERPRETAÇÃO AUTOMÁTICA
+// ============================================================
+function getVal(id) {
+    const slider = document.getElementById('slider-' + id);
+    return slider ? parseFloat(slider.value) : 0;
+}
+
+function classify(val, ref) {
+    if (val < ref[0]) return 'low';
+    if (val > ref[1]) return 'high';
+    return 'normal';
+}
+
+function updateInterpretation() {
+    const hb = getVal('hb'), vcm = getVal('vcm'), hcm = getVal('hcm');
+    const rdw = getVal('rdw'), wbc = getVal('wbc'), neut = getVal('neut');
+    const linfo = getVal('linfo'), mono = getVal('mono'), eos = getVal('eos');
+    const plaq = getVal('plaquetas');
+
+    const hbRef = getRef(simParams.find(p=>p.id==='hb'));
+    const vcmRef = getRef(simParams.find(p=>p.id==='vcm'));
+    const hcmRef = getRef(simParams.find(p=>p.id==='hcm'));
+    const rdwRef = getRef(simParams.find(p=>p.id==='rdw'));
+    const wbcRef = getRef(simParams.find(p=>p.id==='wbc'));
+    const neutRef = getRef(simParams.find(p=>p.id==='neut'));
+    const linfoRef = getRef(simParams.find(p=>p.id==='linfo'));
+    const monoRef = getRef(simParams.find(p=>p.id==='mono'));
+    const eosRef = getRef(simParams.find(p=>p.id==='eos'));
+    const plaqRef = getRef(simParams.find(p=>p.id==='plaquetas'));
+
+    let html = '';
+
+    // === SÉRIE VERMELHA ===
+    const hbClass = classify(hb, hbRef);
+    html += `<div class="interp-section"><h4 class="font-display font-semibold text-sm mb-2 text-blood-400">Serie Vermelha</h4>`;
+
+    if (hbClass === 'low') {
+        let morfologia = '';
+        let grau = hb < 7 ? 'GRAVE (< 7 g/dL)' : hb < 10 ? 'MODERADA (7-10 g/dL)' : 'LEVE (10-12/13 g/dL)';
+
+        if (vcm < vcmRef[0] && hcm < hcmRef[0]) {
+            morfologia = 'microcitica e hipocromica';
+            if (rdw > rdwRef[1]) {
+                html += `<p class="text-bone/80"><strong class="text-red-400">Anemia ${morfologia} com RDW elevado.</strong> Padrao classico de <strong>anemia ferropriva</strong>. Solicitar ferritina serica (principal marcador de reserva de ferro) e sideremia.</p>`;
+                html += `<p class="text-bone/60 text-xs mt-1">Diferencial: se RDW fosse normal, pensar em talassemia minor.</p>`;
+            } else {
+                html += `<p class="text-bone/80"><strong class="text-red-400">Anemia ${morfologia} com RDW normal.</strong> Padrao sugestivo de <strong>talassemia minor</strong>. Populacao eritrocitaria homogenea. Solicitar eletroforese de hemoglobina e dosagem de HbA2.</p>`;
+                html += `<p class="text-bone/60 text-xs mt-1">Diferencial: se RDW alto, pensar em ferropriva.</p>`;
+            }
+        } else if (vcm > vcmRef[1] && hcm > hcmRef[1]) {
+            morfologia = 'macrocitica e hipercromica';
+            html += `<p class="text-bone/80"><strong class="text-red-400">Anemia ${morfologia}.</strong> Pensar em <strong>anemia megaloblastica</strong> (deficiencia de B12 ou folato). Solicitar dosagem de vitamina B12 e acido folico serico. Outras causas: alcoolismo, hepatopatia, hipotireoidismo, mielodisplasia.</p>`;
+        } else if (vcm > vcmRef[1] && hcm >= hcmRef[0]) {
+            morfologia = 'macrocitica normocromica';
+            html += `<p class="text-bone/80"><strong class="text-red-400">Anemia ${morfologia}.</strong> Causas a investigar: alcoolismo cronico, hepatopatia, hipotireoidismo, farmacos (metotrexato, AZT), mielodisplasia. Verificar B12 e folato tambem.</p>`;
+        } else {
+            morfologia = 'normocitica normocromica';
+            if (rdw > rdwRef[1]) {
+                html += `<p class="text-bone/80"><strong class="text-red-400">Anemia ${morfologia} com RDW alto.</strong> Pensar em <strong>hemolise</strong> (reticulocitos estariam altos), <strong>sangramento agudo</strong> com resposta regenerativa, ou <strong>anemia mista</strong> (ferropriva + B12, por exemplo).</p>`;
+            } else {
+                html += `<p class="text-bone/80"><strong class="text-red-400">Anemia ${morfologia} com RDW normal.</strong> Causas mais provaveis: <strong>anemia de doenca cronica</strong>, insuficiencia renal (falta de EPO), aplasia medular, sangramento cronico incipiente. Solicitar PCR, creatinina, reticulocitos.</p>`;
+            }
+        }
+        html += `<p class="text-bone/60 text-xs mt-2">Grau da anemia: <strong>${grau}</strong></p>`;
+
+    } else if (hbClass === 'high') {
+        html += `<p class="text-bone/80"><strong class="text-red-400">Hemoglobina elevada.</strong> Investigar policitemia vera (leucocitos e plaquetas tambem elevados?), hipoxia cronica (DPOC, apneia), desidratacao (hemoconcentracao relativa — verificar ureia/creatinina), uso de EPO ou esteroides.</p>`;
+    } else {
+        html += `<p class="text-bone/80">Hemoglobina dentro da faixa de referencia. Indices hematimetricos normais — sem evidencia de anemia.</p>`;
+    }
+    html += `</div>`;
+
+    // === SÉRIE BRANCA ===
+    const wbcClass = classify(wbc, wbcRef);
+    const neutAbs = Math.round(wbc * neut / 100);
+    const linfoAbs = Math.round(wbc * linfo / 100);
+    const monoAbs = Math.round(wbc * mono / 100);
+    const eosAbs = Math.round(wbc * eos / 100);
+
+    html += `<div class="interp-section dourado"><h4 class="font-display font-semibold text-sm mb-2 text-gold-500">Serie Branca</h4>`;
+
+    if (wbcClass === 'high') {
+        const neutClass = classify(neut, neutRef);
+        const linfoClass = classify(linfo, linfoRef);
+        const eosClass = classify(eos, eosRef);
+
+        if (neutClass === 'high' && neut > 80) {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucocitose com neutrofilia marcante (>80%).</strong> Padrao sugestivo de <strong>infeccao bacteriana aguda</strong>. Investigar desvio a esquerda (bastonetes). Se neutrofilos >90% com formas jovens (metamielocitos, mielocitos), pensar em reacao leucemoide ou LMC.</p>`;
+        } else if (linfoClass === 'high' && linfo > 60) {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucocitose com linfocitose marcante (>60%).</strong> Pensar em <strong>infeccao viral</strong> (mononucleose, citomegalovirose) ou <strong>neoplasia linfoide</strong>. Se leucocitos > 30.000 com >80% linfocitos, suspeitar de LLC. Solicitar imunofenotipagem se suspeita.</p>`;
+        } else if (eosClass === 'high' && eos > 10) {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucocitose com eosinofilia marcante (>10%).</strong> Investigar <strong>parasitoses</strong>, reacoes alergicas severas, DRESS, sindrome hipereosinofilica. Eosinofilia acima de 1.500/mm³ absolutos requer investigacao urgente.</p>`;
+        } else if (neutClass === 'high') {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucocitose com neutrofilia.</strong> Padrao reacional — infeccao bacteriana, inflamacao, estresse, corticoides. Avaliar clinica do paciente para direcionar investigacao.</p>`;
+        } else {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucocitose sem padrao diferencial especifico.</strong> Avaliar valores absolutos de cada subtipo e correlacionar com quadro clinico.</p>`;
+        }
+        html += `<p class="text-bone/60 text-xs mt-2">Valores absolutos estimados — Neut: ${neutAbs.toLocaleString('pt-BR')} | Linfo: ${linfoAbs.toLocaleString('pt-BR')} | Mono: ${monoAbs.toLocaleString('pt-BR')} | Eos: ${eosAbs.toLocaleString('pt-BR')}</p>`;
+    } else if (wbcClass === 'low') {
+        const neutClass = classify(neut, neutRef);
+        const linfoClass = classify(linfo, linfoRef);
+        if (linfoClass === 'high' && neutClass === 'low' && linfo > 55) {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucopenia com linfocitose relativa e neutropenia.</strong> Padrao classico de <strong>infeccao viral</strong> (dengue, influenza, hepatite, HIV). Se dengue: monitorar plaquetas e sinais de alarme. Se HIV suspeito: solicitar sorologia.</p>`;
+        } else if (neutClass === 'low' && neut < 30) {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucopenia com neutropenia acentuada.</strong> Investigar: farmacos (anticonvulsivantes, antitiroideanos), sepse com consumo, agranulocitose, mielodisplasia, aplasia. Neutrofilos < 500/mm³ = neutropenia severa com risco de infeccao.</p>`;
+        } else {
+            html += `<p class="text-bone/80"><strong class="text-gold-400">Leucopenia.</strong> Causas comuns: infeccoes virais, farmacos, corticoides, doenca autoimune, mielodisplasia. Correlacionar com clinica.</p>`;
+        }
+        html += `<p class="text-bone/60 text-xs mt-2">Valores absolutos estimados — Neut: ${neutAbs.toLocaleString('pt-BR')} | Linfo: ${linfoAbs.toLocaleString('pt-BR')}</p>`;
+    } else {
+        const neutClass = classify(neut, neutRef);
+        const linfoClass = classify(linfo, linfoRef);
+        const monoClass = classify(mono, monoRef);
+        let extras = [];
+        if (neutClass !== 'normal') extras.push(neutClass === 'high' ? 'neutrofilia relativa' : 'neutropenia relativa');
+        if (linfoClass !== 'normal') extras.push(linfoClass === 'high' ? 'linfocitose relativa' : 'linfopenia relativa');
+        if (monoClass === 'high') extras.push('monocitose relativa');
+        if (extras.length) {
+            html += `<p class="text-bone/80">Leucocitos totais normais, porem com alteracoes na formula diferencial: <strong>${extras.join(', ')}</strong>. Calcular valores absolutos para avaliacao real.</p>`;
+        } else {
+            html += `<p class="text-bone/80">Leucograma dentro da normalidade — contagem total e formula diferencial sem alteracoes significativas.</p>`;
+        }
+    }
+    html += `</div>`;
+
+    // === PLAQUETAS ===
+    const plaqClass = classify(plaq, plaqRef);
+    html += `<div class="interp-section verde"><h4 class="font-display font-semibold text-sm mb-2 text-green-400">Plaquetas</h4>`;
+
+    if (plaqClass === 'low') {
+        if (plaq < 50000) {
+            html += `<p class="text-bone/80"><strong class="text-red-400">Trombocitopenia severa (< 50.000/mm³).</strong> Risco de sangramento espontaneo. Causas: PTI, CID, PTT/SHU, dengue grave, infiltracao medular, farmacos. Avaliar necessidade de transfusao plaquetaria e investigacao urgente.</p>`;
+        } else if (plaq < 100000) {
+            html += `<p class="text-bone/80"><strong class="text-red-400">Trombocitopenia moderada (50-100.000/mm³).</strong> Se quadro viral suspeito: dengue (monitorar sinais de alarme). Outras causas: PTI, farmacos, infeccao, hiperesplenismo. Solicitar VPM para diferenciar causa central vs periferica.</p>`;
+        } else {
+            html += `<p class="text-bone/80"><strong class="text-yellow-400">Trombocitopenia leve (100-150.000/mm³).</strong> Pode ser fisiologica em gestantes, associada a infeccoes virais leves, ou fase inicial de diversas condicoes. Geralmente requer apenas acompanhamento.</p>`;
+        }
+    } else if (plaqClass === 'high') {
+        if (plaq > 700000) {
+            html += `<p class="text-bone/80"><strong class="text-red-400">Trombocitose acentuada (> 700.000/mm³).</strong> Investigar: trombocitemia essencial (neoplasia mieloproliferativa — verificar mutacao JAK2), policitemia vera, LMC. Trombocitose reacional geralmente nao ultrapassa 700.000.</p>`;
+        } else {
+            html += `<p class="text-bone/80"><strong class="text-yellow-400">Trombocitose (400-700.000/mm³).</strong> Na maioria das vezes e reacional: infeccao, inflamacao, deficiencia de ferro, pos-operatorio, pos-esplenectomia. Se persistente sem causa aparente, investigar neoplasia mieloproliferativa.</p>`;
+        }
+    } else {
+        html += `<p class="text-bone/80">Plaquetas dentro da faixa de referencia — hemostasia primaria presumidamente normal.</p>`;
+    }
+    html += `</div>`;
+
+    // === HIPÓTESE SÍNTESE ===
+    html += `<div style="border-top: 1px solid var(--border); padding-top: 0.75rem; margin-top: 0.5rem;">`;
+    html += `<h4 class="font-display font-semibold text-sm mb-2 text-bone">Sintese</h4>`;
+    let sinteses = [];
+    if (hbClass === 'low' && vcm < 80 && rdw > 14.5) sinteses.push('Padrao compativel com anemia ferropriva — confirmar com ferritina.');
+    else if (hbClass === 'low' && vcm < 80 && rdw <= 14.5) sinteses.push('Padrao compativel com talassemia minor — confirmar com eletroforese de Hb.');
+    else if (hbClass === 'low' && vcm > 100) sinteses.push('Padrao macrocitico — investigar B12, folato, alcoolismo, hepatopatia.');
+    else if (hbClass === 'low') sinteses.push('Anemia normocitica — investigar doenca cronica, hemolise, insuficiencia renal.');
+
+    if (wbcClass === 'high' && neut > 80) sinteses.push('Leucocitose neutrofilica — pensar em infeccao bacteriana aguda.');
+    else if (wbcClass === 'high' && linfo > 60 && wbc > 20000) sinteses.push('Linfocitose acentuada com leucocitose — investigar LLC ou infeccao viral.');
+    else if (wbcClass === 'low' && linfo > 55 && neut < 35) sinteses.push('Padrao viral — leucopenia com linfocitose relativa.');
+    else if (wbcClass === 'low' && neut < 30) sinteses.push('Neutropenia significativa — investigar farmacos, infeccao, medular.');
+
+    if (plaqClass === 'low' && plaq < 100000 && wbcClass === 'low') sinteses.push('Pancitopenia (Hb baixa + leucopenia + trombocitopenia) — investigar aplasia, mielodisplasia, infiltracao medular, dengue.');
+    else if (plaqClass === 'low' && plaq < 100000) sinteses.push('Trombocitopenia isolada — PTI, dengue, farmacos.');
+
+    if (hbClass === 'high' && wbcClass === 'high' && plaqClass === 'high') sinteses.push('Pancitose — pensar em policitemia vera ou outra neoplasia mieloproliferativa. Verificar JAK2.');
+
+    if (sinteses.length === 0) sinteses.push('Hemograma sem alteracoes significativas nos parametros avaliados.');
+
+    sinteses.forEach(s => {
+        html += `<p class="text-sm text-bone/75 mb-1.5"><i class="fas fa-angle-right text-blood-400 mr-1.5 text-xs"></i>${s}</p>`;
+    });
+    html += `</div>`;
+
+    document.getElementById('interpretation').innerHTML = html;
+}
+
+// ============================================================
+// FLUXOGRAMA
+// ============================================================
+function renderFlowchart() {
+    const container = document.getElementById('flowchart-container');
+    container.innerHTML = flowSteps.map((step, i) => {
+        const indent = (step.indent || 0) * 24;
+        let bg, border, icon, textColor;
+        if (step.type === 'decision') {
+            bg = 'bg-blood-500/8 border-blood-500/30';
+            icon = '<i class="fas fa-diamond text-blood-400 text-xs mr-2"></i>';
+            textColor = 'text-bone font-semibold';
+        } else if (step.type === 'result-red') {
+            bg = 'bg-red-500/5 border-red-500/15';
+            icon = '<i class="fas fa-circle text-red-400 text-[6px] mr-2"></i>';
+            textColor = 'text-red-300';
+        } else if (step.type === 'result-green') {
+            bg = 'bg-green-500/5 border-green-500/15';
+            icon = '<i class="fas fa-circle text-green-400 text-[6px] mr-2"></i>';
+            textColor = 'text-green-300';
+        } else {
+            bg = 'bg-white/[0.02] border-white/[0.05]';
+            icon = '<i class="fas fa-minus text-muted text-[8px] mr-2"></i>';
+            textColor = 'text-bone/70';
+        }
+        const connector = i > 0 ? `<div class="flex justify-center" style="padding-left:${indent}px;height:12px;"><div class="w-px bg-blood-500/20"></div></div>` : '';
+        return `${connector}<div class="${bg} border rounded-lg p-3" style="margin-left:${indent}px"><span class="${textColor} text-sm">${icon}${step.text}</span></div>`;
+    }).join('');
+}
+
+// ============================================================
+// DICAS
+// ============================================================
+function renderTips() {
+    const container = document.getElementById('tips-container');
+    container.innerHTML = tips.map(t => `
+        <div class="var-card p-5">
+            <h3 class="font-display font-semibold text-sm mb-2 flex items-center gap-2">
+                <i class="fas fa-bookmark text-gold-500 text-xs"></i>${t.titulo}
+            </h3>
+            <p class="text-sm text-bone/75 leading-relaxed">${t.texto}</p>
+        </div>
+    `).join('');
+}
+
+// ============================================================
+// SCROLL REVEAL
+// ============================================================
+function initScrollReveal() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+// ============================================================
+// MENU MOBILE
+// ============================================================
+function initMobileMenu() {
+    const btn = document.getElementById('mobile-menu-btn');
+    const menu = document.getElementById('mobile-menu');
+    btn.addEventListener('click', () => menu.classList.toggle('hidden'));
+    document.querySelectorAll('.mobile-nav-link').forEach(link => {
+        link.addEventListener('click', () => menu.classList.add('hidden'));
+    });
+}
+
+// ============================================================
+// NAVEGAÇÃO ATIVA
+// ============================================================
+function initActiveNav() {
+    const sections = ['sobre','referencias','simulador','fluxograma'];
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                const link = document.querySelector(`.nav-link[href="#${entry.target.id}"]`);
+                if (link) link.classList.add('active');
+            }
+        });
+    }, { threshold: 0.3 });
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+    });
+}
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    initCells();
+    renderCards('eritrograma');
+    renderSliders();
+    renderScenarios();
+    renderFlowchart();
+    renderTips();
+    updateInterpretation();
+    initScrollReveal();
+    initMobileMenu();
+    initActiveNav();
+});
+</script>
+</body>
+</html>
