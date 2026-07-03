@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabarito e Discussão de Casos - Biomedicina UNIPE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .case-card { transition: all 0.3s ease; }
+        .case-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .gradient-hemo { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+        .gradient-soro { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
+        /* Smooth height transition for accordion */
+        .accordion-content { transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        .accordion-content.open { max-height: 1000px; opacity: 1; }
+        .rotate-icon { transition: transform 0.3s ease; }
+        .rotate-icon.open { transform: rotate(180deg); }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col">
+
+    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">Debriefing Analítico</h1>
+                    <p class="text-xs text-blue-200">Biomedicina UNIPE - Prof. Rodrigo Niskier</p>
+                </div>
+            </div>
+            <a href="index.html" class="flex items-center gap-2 bg-blue-800 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-blue-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Voltar ao LIS
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl mx-auto px-6 py-10 w-full">
+        <div class="mb-10 text-center">
+            <h2 class="text-3xl font-bold text-gray-900">Análise de Coerência e Desfechos</h2>
+            <p class="text-gray-600 mt-3 max-w-2xl mx-auto">Revisão técnica das incoerências identificadas na fase pós-analítica. Expanda cada caso para visualizar o paradoxo dos dados, a fundamentação teórica e a conduta obrigatória.</p>
+        </div>
+
+        <div id="cases-container" class="space-y-6">
+            <!-- JS will populate cases here -->
+        </div>
+    </main>
+
+    <script>
+        const resolutionData = [
+            {
+                id: 'hem-01',
+                type: 'hemo',
+                title: 'Caso 1: Paciente Idoso (Pneumonia)',
+                subtitle: 'Paradoxo da Regra dos 3 e CHCM Incompatível',
+                inconsistency: 'A amostra apresentou Hb de 10,5 g/dL e Ht de 19%. Pela "Regra dos 3", o Ht esperado seria em torno de 31,5% (±3%). Além disso, o CHCM calculado foi de 55,2 g/dL, um valor fisiologicamente impossível (o limite biológico máximo é ~36 g/dL).',
+                analysis: 'O quadro reflete a presença de Crioaglutininas (Cold Agglutinins) associadas à infecção respiratória atípica. Em temperatura ambiente, os anticorpos IgM causam aglutinação das hemácias. O equipamento conta o aglomerado como uma única hemácia gigante (elevando o VCM para 105 fL) e subestima a contagem global de hemácias, o que derruba o hematócrito calculado. A hemoglobina é lida corretamente (por lise espectrofotométrica), gerando o erro de cálculo no CHCM.',
+                action: 'O resultado NÃO deve ser liberado. O biomédico deve incubar a amostra em banho-maria a 37°C por 15 a 30 minutos e imediatamente reprocessá-la no equipamento para desfazer a aglutinação in vitro.'
+            },
+            {
+                id: 'hem-02',
+                type: 'hemo',
+                title: 'Caso 2: Exame Ocupacional',
+                subtitle: 'Pseudotrombocitopenia e Incompatibilidade Clínica',
+                inconsistency: 'Paciente jovem, realizando exame de rotina, assintomático e sem histórico de sangramentos, apresentando contagem de plaquetas crítica (32.000/µL). O equipamento emitiu os flags "Platelet Clumps?" e "Abnormal Platelet Distribution".',
+                analysis: 'Há uma ruptura clara da coerência cruzada clínica. A plaquetopenia severa não condiz com um paciente saudável sem petéquias. Os avisos do equipamento denunciam que o problema é pré-analítico/analítico: a presença de agregados plaquetários dependentes do anticoagulante EDTA. O equipamento reconhece os grumos como leucócitos ou os ignora na leitura de plaquetas.',
+                action: 'O laudo deve ser retido. É obrigatório confeccionar e corar um esfregaço sanguíneo. Ao observar os grumos nas franjas da lâmina, confirma-se a pseudotrombocitopenia. Deve-se solicitar nova coleta utilizando tubo com Citrato de Sódio, corrigindo o resultado final (fator de diluição 1,1) e inserindo o registro da análise microscópica no laudo.'
+            },
+            {
+                id: 'hem-03',
+                type: 'hemo',
+                title: 'Caso 3: UTI Neonatal (Eritroblastose Fetal)',
+                subtitle: 'Interferência de NRBCs no Diferencial Leucocitário',
+                inconsistency: 'Amostra revelou leucocitose severa (58.000/µL) com franca linfocitose (85%), além da emissão do flag "NRBC?".',
+                analysis: 'Em quadros de eritroblastose fetal, há intensa liberação de hemácias imaturas nucleadas (Eritroblastos / NRBCs) na corrente sanguínea. Equipamentos que utilizam apenas impedância não conseguem distinguir o núcleo de um eritroblasto do núcleo de um linfócito, contabilizando falsamente os NRBCs como leucócitos totais e linfócitos.',
+                action: 'É expressamente proibida a liberação sem revisão do esfregaço. O biomédico deve realizar a contagem manual, quantificando os eritroblastos em 100 leucócitos. Em seguida, aplica a fórmula de correção global: [(Leucócitos medidos × 100) / (100 + número de NRBCs)]. O diferencial também é ajustado pela microscopia, e a presença de eritroblastos é relatada nas observações.'
+            },
+            {
+                id: 'sor-01',
+                type: 'soro',
+                title: 'Caso 4: Autoimunidade (Paciente com LES)',
+                subtitle: 'Falso Biológico Positivo na Sífilis',
+                inconsistency: 'O VDRL (não treponêmico) foi Reagente (1:4), enquanto o Teste Treponêmico Rápido e o FTA-ABS foram Não Reagentes. A paciente possui Lúpus (FAN e Anti-DNA reagentes).',
+                analysis: 'O padrão de teste treponêmico negativo com VDRL positivo quebra a fisiologia de uma infecção sifilítica ativa e define o "Falso Biológico Positivo". O VDRL utiliza um antígeno lipídico (cardiolipina) que não é exclusivo do Treponema. Anticorpos autoimunes, comuns no Lúpus Eritematoso Sistêmico (LES), reagem cruzadamente com esse antígeno.',
+                action: 'O biomédico deve reter a liberação de "Sífilis Ativa". O laudo é liberado, porém com a inserção obrigatória de uma nota interpretativa ou comentário descritivo esclarecendo que o padrão sorológico sugere Falso Biológico Positivo, devendo o médico correlacionar o achado com a doença autoimune de base.'
+            },
+            {
+                id: 'sor-02',
+                type: 'soro',
+                title: 'Caso 5: Pediatria Infecciosa',
+                subtitle: 'Transferência Passiva de Anticorpos (IgG Materna)',
+                inconsistency: 'Criança de 8 meses, mãe HIV positiva. O teste de 4ª Geração mostrou Anticorpos Reagentes, mas Antígeno p24 Não Reagente.',
+                analysis: 'Em adultos, este padrão indica infecção crônica. Contudo, em crianças menores de 18 meses, ocorre a transferência passiva de anticorpos IgG transplacentários da mãe para o feto. Os anticorpos detectados no soro da criança pertencem à mãe. A ausência de Antígeno p24 reforça a necessidade de cautela.',
+                action: 'O laudo não pode ser validado como diagnóstico definitivo de HIV para a criança. A conduta é reter ou laudar com nota explicativa informando a limitação do teste sorológico para menores de 18 meses devido à transferência de IgG materna. É obrigatório orientar/solicitar a investigação molecular via PCR (Carga Viral) para confirmação etiológica direta do vírus.'
+            },
+            {
+                id: 'sor-03',
+                type: 'soro',
+                title: 'Caso 6: Pré-Natal (Toxoplasmose)',
+                subtitle: 'Persistência de IgM e Alta Avidez',
+                inconsistency: 'Gestante de 10 semanas (1º trimestre) apresentou IgG e IgM reagentes para Toxoplasmose. O paradoxo clínico seria o risco de infecção aguda, porém o Teste de Avidez da IgG foi de 82% (Alta Avidez).',
+                analysis: 'A presença do IgM não é sinônimo incontestável de infecção aguda na toxoplasmose, pois este marcador pode persistir circulante por meses ou até mais de um ano. A regra de ouro é o Teste de Avidez da IgG. Índices superiores a 60% garantem imunologicamente que a infecção inicial ocorreu há MAIS de 4 meses.',
+                action: 'Como a paciente está na 10ª semana de gestação (< 3 meses), a alta avidez exclui categoricamente que a infecção tenha ocorrido durante a gravidez. O biomédico deve validar o exame dando destaque ao resultado de alta avidez no laudo final, garantindo ao obstetra que se trata de uma infecção pregressa, sem risco de transmissão congênita aguda.'
+            }
+        ];
+
+        function renderCases() {
+            const container = document.getElementById('cases-container');
+            
+            resolutionData.forEach((item, index) => {
+                const isHemo = item.type === 'hemo';
+                const tagColor = isHemo ? 'text-red-700 bg-red-100 border-red-200' : 'text-purple-700 bg-purple-100 border-purple-200';
+                const headerBg = isHemo ? 'hover:bg-red-50' : 'hover:bg-purple-50';
+
+                const html = `
+                    <div class="case-card bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                        <!-- Accordion Header -->
+                        <button onclick="toggleAccordion(${index})" class="w-full text-left px-6 py-5 ${headerBg} transition-colors flex justify-between items-center focus:outline-none">
+                            <div class="flex items-start gap-4">
+                                <div class="mt-1">
+                                    <span class="text-xs font-bold px-2 py-1 rounded border ${tagColor}">
+                                        ${isHemo ? 'HEMATOLOGIA' : 'SOROLOGIA'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900">${item.title}</h3>
+                                    <p class="text-sm font-medium text-gray-500 mt-1 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                        ${item.subtitle}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-gray-400">
+                                <svg id="icon-${index}" class="w-6 h-6 rotate-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </button>
+
+                        <!-- Accordion Body -->
+                        <div id="content-${index}" class="accordion-content bg-gray-50 border-t border-gray-100">
+                            <div class="p-6 md:p-8 space-y-6">
+                                
+                                <div class="flex gap-4">
+                                    <div class="flex-shrink-0 mt-1">
+                                        <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">O Paradoxo / A Incoerência</h4>
+                                        <p class="text-gray-700 leading-relaxed">${item.inconsistency}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-4">
+                                    <div class="flex-shrink-0 mt-1">
+                                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">Análise Teórica</h4>
+                                        <p class="text-gray-700 leading-relaxed">${item.analysis}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                                    <div class="flex-shrink-0 mt-1">
+                                        <div class="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-700">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-sm font-bold text-green-900 uppercase tracking-wider mb-2">Conduta do Biomédico</h4>
+                                        <p class="text-green-800 leading-relaxed">${item.action}</p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function toggleAccordion(index) {
+            const content = document.getElementById(`content-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.classList.remove('open');
+            } else {
+                // Close all others first (optional, keeping it clean)
+                document.querySelectorAll('.accordion-content').forEach(el => el.classList.remove('open'));
+                document.querySelectorAll('.rotate-icon').forEach(el => el.classList.remove('open'));
+                
+                // Open the clicked one
+                content.classList.add('open');
+                icon.classList.add('open');
+            }
+        }
+
+        // Initialize
+        window.onload = () => {
+            renderCases();
+        };
+    </script>
+
+</body>
+</html>
